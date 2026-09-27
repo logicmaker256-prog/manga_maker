@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パラパラ漫画メーカー</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+    }
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+    }
+    .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .panel {
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        flex: 1;
+        min-width: 350px;
+    }
+    .panel h2 {
+        margin-top: 0;
+        font-size: 1.2em;
+        border-bottom: 2px solid #eaeaea;
+        padding-bottom: 10px;
+        color: #2980b9;
+    }
+    .control-group {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .control-group label {
+        font-weight: bold;
+        width: 130px;
+    }
+    input[type="number"], input[type="text"], input[type="file"] {
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    input[type="number"] {
+        width: 60px;
+    }
+    input[type="text"].wide {
+        flex: 1;
+        min-width: 150px;
+    }
+    button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+    }
+    button:hover { background-color: #2980b9; }
+    button.success { background-color: #2ecc71; font-weight: bold; }
+    button.success:hover { background-color: #27ae60; }
+    button.danger { background-color: #e74c3c; }
+    button.danger:hover { background-color: #c0392b; }
+
+    #animationSelect {
+        padding: 10px 8px;
+        font-size: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        min-width: 140px;
+    }
+    
+    .canvas-wrapper {
+        width: 100%;
+        height: 400px;
+        overflow: auto;
+        border: 2px solid #555;
+        background-color: #222; /* 白枠を見やすくするための暗い背景 */
+        position: relative;
+        margin-bottom: 15px;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+    #workspaceCanvas {
+        transform-origin: top left;
+        cursor: move;
+        touch-action: none;
+    }
+    .frames-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 15px;
+        padding: 10px;
+        background: #f9f9f9;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+    }
+    .frame-card {
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px;
+        text-align: center;
+        width: 100px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        cursor: pointer;
+    }
+    .frame-card.selected {
+        border: 3px solid #e83e8c;
+        box-shadow: 0 0 0 3px rgba(232,62,140,0.25);
+    }
+    .frame-card img {
+        max-width: 100%;
+        max-height: 80px;
+        border: 1px solid #eee;
+        /* 透明な背景をわかりやすくする市松模様 */
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAOklEQVQYV2NkYGAwYcSPQP9BQAwzHBlYGFhgHJiJpIjgTCSLQDUoXgW6Gbk1QRRhyqE5Bl0x3C4kBgB0FBUx19sZlAAAAABJRU5ErkJggg==');
+    }
+    .frame-card .frame-number {
+        font-weight: bold;
+        margin-top: 8px;
+        color: #e83e8c;
+        font-size: 1.1em;
+    }
+    .preview-box {
+        text-align: center;
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    #previewCanvas {
+        border: 2px solid #333;
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAOklEQVQYV2NkYGAwYcSPQP9BQAwzHBlYGFhgHJiJpIjgTCSLQDUoXgW6Gbk1QRRhyqE5Bl0x3C4kBgB0FBUx19sZlAAAAABJRU5ErkJggg==');
+    }
+
+    /* プロジェクト保存・読み込みバー */
+    .project-bar {
+        max-width: 1200px;
+        margin: 0 auto 20px auto;
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+    .project-bar label {
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    .project-bar input[type="text"] {
+        flex: 1;
+        min-width: 140px;
+    }
+    .project-bar button {
+        padding: 10px 14px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    #loadProjectInput {
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<h1>パラパラ漫画メーカー</h1>
+
+<div class="project-bar">
+    <label for="projectName">プロジェクト名:</label>
+    <input type="text" id="projectName" class="wide" placeholder="例: hero_walk">
+    <button id="saveProjectBtn">💾 プロジェクト保存</button>
+    <button id="loadProjectBtn">📂 プロジェクト読み込み</button>
+    <input type="file" id="loadProjectInput" accept=".zip,.json,application/zip,application/json">
+</div>
+
+<div class="container">
+    <!-- 作業領域パネル -->
+    <div class="panel">
+        <h2>1. 画像の読み込みと切り出し</h2>
+        <div class="control-group">
+            <label>画像の選択:</label>
+            <input type="file" id="imageInput" accept="image/png, image/jpeg">
+        </div>
+        
+        <div class="control-group">
+            <label>表示の拡大/縮小:</label>
+            <button id="zoomOut">- 縮小</button>
+            <span id="zoomText" style="display:inline-block; width:50px; text-align:center; font-weight:bold;">100%</span>
+            <button id="zoomIn">+ 拡大</button>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="workspaceCanvas"></canvas>
+        </div>
+
+        <!-- 複数パラパラ漫画（アニメーション）管理UI -->
+        <div class="control-group">
+            <label>パラパラ漫画:</label>
+            <select id="animationSelect"></select>
+            <button id="newAnimationBtn">＋ 新しいパラパラ漫画</button>
+        </div>
+        <div class="control-group">
+            <button id="renameAnimationBtn">✏️ 名前変更</button>
+            <button id="deleteAnimationBtn" class="danger">🗑 削除</button>
+            <small style="color: #666;">※1枚の画像に複数のパラパラ漫画（歩行・攻撃など）を登録できます</small>
+        </div>
+
+        <div class="control-group">
+            <label>切り出しサイズ:</label>
+            W <input type="number" id="cropW" value="100" min="1"> × 
+            H <input type="number" id="cropH" value="100" min="1">
+        </div>
+        <div class="control-group">
+            <label>切り出し位置:</label>
+            X <input type="number" id="cropX" value="0" min="0"> , 
+            Y <input type="number" id="cropY" value="0" min="0">
+            <small style="color: #666; margin-left: 10px;">※画像上のドラッグでも移動できます</small>
+        </div>
+        
+        <div class="control-group" style="justify-content: center; margin-top: 20px;">
+            <button id="cropBtn" class="success">✓ この領域を切り出して読み込む (決定)</button>
+        </div>
+
+        <h3>切り出したコマ (番号)</h3>
+        <div class="frames-container" id="framesList">
+            <!-- ここに切り出した画像と番号が追加されます -->
+        </div>
+    </div>
+
+    <!-- アニメーション作成パネル -->
+    <div class="panel">
+        <h2>2. パラパラ漫画の完成 <span style="font-size:0.7em; font-weight:normal; color:#2ecc71;">編集中: <strong id="currentAnimName">-</strong></span></h2>
+        <div class="control-group">
+            <label>コマの順番:</label>
+            <input type="text" id="animSequence" class="wide" placeholder="例: 0,1,2,1">
+        </div>
+        <div style="font-size: 0.9em; color: #666; margin-bottom: 15px; margin-left: 140px;">
+            ※切り出した「番号」をカンマ区切りで入力してください
+        </div>
+
+        <div class="control-group">
+            <label>再生速度 (ミリ秒):</label>
+            <input type="number" id="animSpeed" value="200" min="10" step="10">
+            <span style="font-size: 0.9em; color: #666;">（数値が小さいほど速くなります）</span>
+        </div>
+
+        <div class="control-group" style="justify-content: center; gap: 20px; margin-top: 20px;">
+            <button id="playBtn" class="success" style="font-size: 1.1em; padding: 10px 30px;">▶ 再生</button>
+            <button id="stopBtn" class="danger" style="font-size: 1.1em; padding: 10px 30px;">■ 停止</button>
+        </div>
+
+        <div class="preview-box">
+            <canvas id="previewCanvas" width="200" height="200"></canvas>
+            <div style="margin-top: 10px; font-weight: bold; color: #555;">プレビュー画面</div>
+        </div>
+    </div>
+</div>
+
+<!-- ZIP形式(.parapara.zip)の保存・読み込みに使用するライブラリ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // UI要素の取得
+    const imageInput = document.getElementById('imageInput');
+    const workspaceCanvas = document.getElementById('workspaceCanvas');
+    const ctx = workspaceCanvas.getContext('2d');
+    
+    const cropW = document.getElementById('cropW');
+    const cropH = document.getElementById('cropH');
+    const cropX = document.getElementById('cropX');
+    const cropY = document.getElementById('cropY');
+    const cropBtn = document.getElementById('cropBtn');
+    
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const zoomText = document.getElementById('zoomText');
+    
+    const framesList = document.getElementById('framesList');
+    
+    const animSequence = document.getElementById('animSequence');
+    const animSpeed = document.getElementById('animSpeed');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewCtx = previewCanvas.getContext('2d');
+
+    // プロジェクト保存・読み込み用のUI要素
+    const projectName = document.getElementById('projectName');
+    const saveProjectBtn = document.getElementById('saveProjectBtn');
+    const loadProjectBtn = document.getElementById('loadProjectBtn');
+    const loadProjectInput = document.getElementById('loadProjectInput');
+
+    // 複数パラパラ漫画（アニメーション）管理用のUI要素
+    const animationSelect = document.getElementById('animationSelect');
+    const newAnimationBtn = document.getElementById('newAnimationBtn');
+    const renameAnimationBtn = document.getElementById('renameAnimationBtn');
+    const deleteAnimationBtn = document.getElementById('deleteAnimationBtn');
+    const currentAnimName = document.getElementById('currentAnimName');
+
+    // 状態変数
+    let img = null;
+    let zoom = 1.0;
+    let hideRect = false; 
+    let frames = []; 
+    let animInterval = null;
+    let animIndex = 0;
+    let isDragging = false;
+    let selectedFrameIndex = -1; // タップして選択中のコマ番号（-1は未選択）
+
+    // 複数パラパラ漫画（アニメーション）の管理
+    // frames / animSequence / animSpeed は「現在選択中のアニメーション」の編集用バッファとして
+    // これまで通り利用し、切り替え・保存のタイミングで animations 配列と同期する。
+    let animations = [{ id: generateAnimId(), name: 'アニメーション1', frames: [], sequence: [], speed: 200, crop: null }];
+    let currentAnimationId = animations[0].id;
+
+    // 切り出したフレームをframesListにカードとして追加する（新規切り出し・読み込み復元の両方で使用）
+    function addFrameCard(frameIndex, dataUrl) {
+        const div = document.createElement('div');
+        div.className = 'frame-card';
+        div.dataset.frameIndex = frameIndex;
+        div.innerHTML = `
+            <img src="${dataUrl}" alt="Frame ${frameIndex}">
+            <div class="frame-number">${frameIndex}</div>
+        `;
+        // タップ／クリックでこの番号のコマを選択状態にする（スマートフォンのタップでも click は発火する）
+        div.addEventListener('click', () => selectFrame(frameIndex));
+        framesList.appendChild(div);
+    }
+
+    // 指定した番号のコマを選択状態にし、そのコマの現在の切り出し位置・サイズを白枠に反映する
+    function selectFrame(frameIndex) {
+        const f = frames[frameIndex];
+        if (!f) return;
+        selectedFrameIndex = frameIndex;
+
+        // 白枠をそのコマの現在位置へ移動（w/hはこの後の移動処理では変更しない）
+        cropX.value = f.x;
+        cropY.value = f.y;
+        cropW.value = f.w;
+        cropH.value = f.h;
+
+        highlightSelectedFrameCard();
+        drawWorkspace();
+    }
+
+    // 選択中のコマのカードだけを見た目で強調する
+    function highlightSelectedFrameCard() {
+        Array.from(framesList.children).forEach((card) => {
+            const idx = parseInt(card.dataset.frameIndex, 10);
+            card.classList.toggle('selected', idx === selectedFrameIndex);
+        });
+    }
+
+    // 選択中のコマの移動が確定したタイミングで、元画像から1回だけ再切り出しして
+    // frames[selectedFrameIndex].dataUrl とサムネイル表示を更新する（w/hは変更しない）
+    function updateSelectedFrameThumbnail() {
+        if (selectedFrameIndex < 0 || !img) return;
+        const f = frames[selectedFrameIndex];
+        if (!f) return;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = f.w;
+        tempCanvas.height = f.h;
+        tempCanvas.getContext('2d').drawImage(img, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+        f.dataUrl = tempCanvas.toDataURL('image/png');
+
+        const card = framesList.children[selectedFrameIndex];
+        if (card) {
+            const imgEl = card.querySelector('img');
+            if (imgEl) imgEl.src = f.dataUrl;
+        }
+    }
+
+    // ==========================================================
+    // 複数パラパラ漫画（アニメーション）の管理
+    // ==========================================================
+
+    // 安定したアニメーションID（名前変更しても変わらない）を生成
+    function generateAnimId() {
+        return 'anim_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    // 現在編集中の内容（frames / animSequence / animSpeed / 切り出し位置）を
+    // animations配列の該当アニメーションへ反映する（切り替え・保存の直前に必ず呼ぶ）
+    function syncCurrentAnimationFromEditor() {
+        const anim = animations.find(a => a.id === currentAnimationId);
+        if (!anim) return;
+
+        anim.frames = frames.map(f => ({ ...f }));
+
+        anim.sequence = animSequence.value.split(',')
+            .map(s => parseInt(s.trim()))
+            .filter(n => !isNaN(n) && n >= 0 && n < frames.length);
+
+        anim.speed = parseInt(animSpeed.value) || 200;
+
+        // 現在の切り出しサイズ・位置を、このアニメーションの参考情報として保持
+        anim.crop = {
+            x: parseInt(cropX.value) || 0,
+            y: parseInt(cropY.value) || 0,
+            w: parseInt(cropW.value) || 100,
+            h: parseInt(cropH.value) || 100
+        };
+    }
+
+    // 指定したアニメーションの内容を、既存の編集UI（frames / animSequence / animSpeed 等）へ読み込む
+    function loadAnimationIntoEditor(animId) {
+        const anim = animations.find(a => a.id === animId);
+        if (!anim) return;
+
+        stopAnimation();
+        currentAnimationId = anim.id;
+        selectedFrameIndex = -1; // アニメーション切り替え時は選択状態を持ち越さない
+
+        frames = anim.frames.map(f => ({ ...f }));
+        framesList.innerHTML = '';
+        frames.forEach((f, i) => addFrameCard(i, f.dataUrl));
+
+        animSequence.value = anim.sequence.join(',');
+        animSpeed.value = anim.speed;
+
+        if (anim.crop) {
+            if (typeof anim.crop.x === 'number') cropX.value = anim.crop.x;
+            if (typeof anim.crop.y === 'number') cropY.value = anim.crop.y;
+            if (typeof anim.crop.w === 'number') cropW.value = anim.crop.w;
+            if (typeof anim.crop.h === 'number') cropH.value = anim.crop.h;
+        } else {
+            cropX.value = 0;
+            cropY.value = 0;
+        }
+
+        if (currentAnimName) currentAnimName.textContent = anim.name;
+        drawWorkspace();
+    }
+
+    // アニメーション選択プルダウンを animations 配列の内容で再構築する
+    function refreshAnimationSelect() {
+        animationSelect.innerHTML = '';
+        animations.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = a.name;
+            animationSelect.appendChild(opt);
+        });
+        animationSelect.value = currentAnimationId;
+
+        const anim = animations.find(a => a.id === currentAnimationId);
+        if (currentAnimName) currentAnimName.textContent = anim ? anim.name : '-';
+    }
+
+    // アニメーションの切り替え
+    animationSelect.addEventListener('change', () => {
+        syncCurrentAnimationFromEditor();
+        loadAnimationIntoEditor(animationSelect.value);
+    });
+
+    // 新しいパラパラ漫画（アニメーション）の作成
+    newAnimationBtn.addEventListener('click', () => {
+        const defaultName = 'アニメーション' + (animations.length + 1);
+        const inputName = window.prompt('新しいパラパラ漫画の名前を入力してください（例: 歩行、攻撃、ジャンプ）', defaultName);
+        if (inputName === null) return; // キャンセル
+        const finalName = inputName.trim() || defaultName;
+
+        // 現在編集中の内容を失わないよう先に保存してから切り替える
+        syncCurrentAnimationFromEditor();
+
+        const newAnim = { id: generateAnimId(), name: finalName, frames: [], sequence: [], speed: 200, crop: null };
+        animations.push(newAnim);
+        loadAnimationIntoEditor(newAnim.id);
+        refreshAnimationSelect();
+    });
+
+    // 現在選択中のパラパラ漫画の名前を変更
+    renameAnimationBtn.addEventListener('click', () => {
+        const anim = animations.find(a => a.id === currentAnimationId);
+        if (!anim) return;
+        const inputName = window.prompt('新しい名前を入力してください', anim.name);
+        if (inputName === null) return; // キャンセル
+        const trimmed = inputName.trim();
+        if (!trimmed) {
+            alert('名前を空にすることはできません。');
+            return;
+        }
+        anim.name = trimmed;
+        refreshAnimationSelect();
+    });
+
+    // 現在選択中のパラパラ漫画を削除（元画像(source.png)は削除しない）
+    deleteAnimationBtn.addEventListener('click', () => {
+        if (animations.length <= 1) {
+            alert('パラパラ漫画は最低1つ必要なため、これ以上削除できません。');
+            return;
+        }
+        const anim = animations.find(a => a.id === currentAnimationId);
+        if (!anim) return;
+
+        const ok = window.confirm('「' + anim.name + '」を削除します。よろしいですか？（元画像は削除されません）');
+        if (!ok) return;
+
+        const idx = animations.findIndex(a => a.id === currentAnimationId);
+        animations.splice(idx, 1);
+
+        const nextIndex = Math.min(idx, animations.length - 1);
+        loadAnimationIntoEditor(animations[nextIndex].id);
+        refreshAnimationSelect();
+    });
+
+    // 1. 画像の読み込み
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            img = new Image();
+            img.onload = () => {
+                zoom = 1.0;
+                updateZoom();
+                drawWorkspace();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 拡大縮小の処理
+    zoomInBtn.addEventListener('click', () => {
+        zoom += 0.2;
+        updateZoom();
+        drawWorkspace();
+    });
+    
+    zoomOutBtn.addEventListener('click', () => {
+        zoom = Math.max(0.2, zoom - 0.2);
+        updateZoom();
+        drawWorkspace();
+    });
+
+    function updateZoom() {
+        zoomText.textContent = Math.round(zoom * 100) + '%';
+        workspaceCanvas.style.transform = `scale(${zoom})`;
+    }
+
+    // 値が直接入力されたら再描画
+    [cropW, cropH, cropX, cropY].forEach(el => {
+        el.addEventListener('input', drawWorkspace);
+    });
+
+    // 作業用画像の描画処理と中抜き白四角（枠）の表示
+    function drawWorkspace() {
+        if (!img) return;
+        workspaceCanvas.width = img.width;
+        workspaceCanvas.height = img.height;
+        
+        // 画像をリセットして描画
+        ctx.clearRect(0, 0, workspaceCanvas.width, workspaceCanvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        // 決定ボタンが押された瞬間は、枠を消す
+        if (hideRect) return; 
+
+        const x = parseInt(cropX.value) || 0;
+        const y = parseInt(cropY.value) || 0;
+        const w = parseInt(cropW.value) || 100;
+        const h = parseInt(cropH.value) || 100;
+
+        // 見やすいように外側・内側に黒の縁取りをつけた中抜き白枠を描画
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
+        ctx.strokeStyle = 'white';
+        ctx.strokeRect(x, y, w, h);
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    }
+
+    // ドラッグで中抜き枠を移動させる処理
+    // Pointer Eventsを使用し、既存のマウス操作に加えてスマートフォンのタッチ操作でも
+    // 同じ moveRect(e) をそのまま利用できるようにする（座標移動ロジックの二重実装を避ける）
+    workspaceCanvas.addEventListener('pointerdown', (e) => {
+        if (!img) return;
+        isDragging = true;
+        workspaceCanvas.setPointerCapture(e.pointerId);
+        moveRect(e);
+    });
+
+    workspaceCanvas.addEventListener('pointermove', (e) => {
+        if (isDragging) {
+            moveRect(e);
+        }
+    });
+
+    workspaceCanvas.addEventListener('pointerup', () => {
+        isDragging = false;
+        // 既存コマを移動していた場合、ここで1回だけサムネイル（dataUrl）を再生成する
+        updateSelectedFrameThumbnail();
+    });
+
+    workspaceCanvas.addEventListener('pointercancel', () => {
+        isDragging = false;
+    });
+
+    function moveRect(e) {
+        const rect = workspaceCanvas.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) / zoom;
+        const mouseY = (e.clientY - rect.top) / zoom;
+        
+        const w = parseInt(cropW.value) || 100;
+        const h = parseInt(cropH.value) || 100;
+
+        // マウス（またはタッチ）の位置が枠の中心になるように計算
+        let newX = Math.round(mouseX - w / 2);
+        let newY = Math.round(mouseY - h / 2);
+
+        // 画像の範囲外に出ないように制限
+        newX = Math.max(0, Math.min(newX, img.width - w));
+        newY = Math.max(0, Math.min(newY, img.height - h));
+
+        cropX.value = newX;
+        cropY.value = newY;
+
+        // 既存コマを選択中の場合は、そのコマのx/yだけをドラッグ中に更新する（w/hはここでは変更しない、
+        // dataUrlの再生成もしない＝ドラッグ終了時にupdateSelectedFrameThumbnail()で1回だけ行う）
+        if (selectedFrameIndex >= 0 && frames[selectedFrameIndex]) {
+            frames[selectedFrameIndex].x = newX;
+            frames[selectedFrameIndex].y = newY;
+        }
+
+        drawWorkspace();
+    }
+
+    // 2. 決定ボタンで画像を読み込む（切り出し）
+    cropBtn.addEventListener('click', () => {
+        if (!img) {
+            alert('まずは画像を読み込んでください。');
+            return;
+        }
+
+        const x = parseInt(cropX.value) || 0;
+        const y = parseInt(cropY.value) || 0;
+        const w = parseInt(cropW.value) || 100;
+        const h = parseInt(cropH.value) || 100;
+
+        if (w <= 0 || h <= 0) {
+            alert('幅と高さは1以上にしてください。');
+            return;
+        }
+
+        // 枠を消して再描画する
+        hideRect = true;
+        drawWorkspace();
+
+        // 視覚的に「枠が消えた」と分かりやすくするため、一瞬待ってから切り取る
+        setTimeout(() => {
+            // 見えないキャンバスを作成して指定位置を切り出し
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 元の画像から指定した座標・大きさを抽出
+            tempCtx.drawImage(img, x, y, w, h, 0, 0, w, h);
+            const dataUrl = tempCanvas.toDataURL('image/png');
+            
+            // 配列に保存（x, y はZIP保存時に元画像からの再生成に使用）
+            frames.push({ dataUrl, w, h, x, y });
+            const frameIndex = frames.length - 1;
+
+            // 3. 読み込んだ画像に番号をふる
+            addFrameCard(frameIndex, dataUrl);
+
+            // 4. アニメーション順序の入力欄を自動更新
+            if (frames.length === 1) {
+                animSequence.value = "0";
+            } else {
+                let currentSeq = animSequence.value;
+                animSequence.value = currentSeq ? (currentSeq + "," + frameIndex) : frameIndex.toString();
+            }
+
+            // 作業用キャンバスの枠を復活させる
+            hideRect = false;
+            drawWorkspace();
+        }, 150); // 150ミリ秒待機
+    });
+
+    // パラパラ漫画の再生
+    playBtn.addEventListener('click', () => {
+        if (frames.length === 0) {
+            alert('切り出した画像がありません。');
+            return;
+        }
+
+        // 入力されたカンマ区切りの番号を配列に変換
+        const seqStr = animSequence.value;
+        const seq = seqStr.split(',')
+                          .map(s => parseInt(s.trim()))
+                          .filter(n => !isNaN(n) && n >= 0 && n < frames.length);
+        
+        if (seq.length === 0) {
+            alert('有効なコマの番号が指定されていません。');
+            return;
+        }
+
+        const speed = parseInt(animSpeed.value) || 200;
+        stopAnimation();
+
+        animIndex = 0;
+        animInterval = setInterval(() => {
+            const frameNum = seq[animIndex];
+            const frameData = frames[frameNum];
+
+            if (frameData) {
+                // キャンバスサイズを現在のコマの大きさに合わせる
+                previewCanvas.width = frameData.w;
+                previewCanvas.height = frameData.h;
+                
+                const fImg = new Image();
+                fImg.onload = () => {
+                    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                    previewCtx.drawImage(fImg, 0, 0);
+                };
+                fImg.src = frameData.dataUrl;
+            }
+
+            animIndex++;
+            if (animIndex >= seq.length) {
+                animIndex = 0; // 最後まで行ったらループ
+            }
+        }, speed);
+    });
+
+    stopBtn.addEventListener('click', stopAnimation);
+
+    function stopAnimation() {
+        if (animInterval) {
+            clearInterval(animInterval);
+            animInterval = null;
+        }
+    }
+
+    // ==========================================================
+    // プロジェクト保存・読み込み機能
+    // ==========================================================
+    const PROJECT_FORMAT = 'parapara-project';
+    const LEGACY_JSON_VERSION = 1; // 旧 .parapara.json（単一アニメーション、フレームをBase64で保存）
+    const ZIP_V2_VERSION = 2;      // 旧 .parapara.zip（単一アニメーション、source.png + 座標）
+    const CURRENT_VERSION = 3;     // 現在の保存形式 .parapara.zip（複数アニメーション、source.png + 座標）
+
+    // ファイル名として安全な文字列に変換
+    function sanitizeFileName(name) {
+        const trimmed = (name || '').trim();
+        const safe = trimmed.replace(/[\\/:*?"<>|]/g, '_');
+        return safe || 'untitled';
+    }
+
+    // --- 保存（Version 3: source.png + 複数アニメーションの座標 を .parapara.zip にまとめる） ---
+    saveProjectBtn.addEventListener('click', async () => {
+        // 現在編集中のアニメーションの最新状態をanimations配列へ反映してから保存する
+        syncCurrentAnimationFromEditor();
+
+        const hasAnyFrame = animations.some(a => a.frames.length > 0);
+        if (!hasAnyFrame) {
+            alert('保存できるコマがありません。まずは画像を切り出してコマを作成してください。');
+            return;
+        }
+        if (!img) {
+            alert('元画像が読み込まれていません。保存するには、画像を読み込んだ状態で操作してください。');
+            return;
+        }
+        // 古い形式(Version1)を読み込んだままのコマなど、座標情報を持たないコマがないか確認
+        const missingCoord = animations.some(a => a.frames.some(f =>
+            typeof f.x !== 'number' || typeof f.y !== 'number' ||
+            typeof f.w !== 'number' || typeof f.h !== 'number'
+        ));
+        if (missingCoord) {
+            alert('一部のコマに切り出し座標の情報がありません（古い形式のプロジェクトを読み込んだ可能性があります）。画像を読み込んでコマを切り出し直してから保存してください。');
+            return;
+        }
+        // コマが1枚もないアニメーションがあっても保存自体は妨げないが、そのアニメーションはsequenceが空になる
+        if (typeof JSZip === 'undefined') {
+            alert('ZIP作成用のライブラリを読み込めませんでした。インターネット接続をご確認の上、ページを再読み込みしてください。');
+            return;
+        }
+
+        const projectData = {
+            format: PROJECT_FORMAT,
+            version: CURRENT_VERSION,
+            name: projectName.value.trim(),
+            source: {
+                file: 'source.png',
+                width: img.naturalWidth || img.width,
+                height: img.naturalHeight || img.height
+            },
+            animations: animations.map(a => ({
+                id: a.id,
+                name: a.name,
+                frames: a.frames.map((f, i) => ({ index: i, x: f.x, y: f.y, w: f.w, h: f.h })),
+                sequence: a.sequence,
+                speed: a.speed,
+                crop: a.crop || null
+            })),
+            currentAnimationId: currentAnimationId
+        };
+
+        try {
+            // 元画像をPNGとして書き出す（JPEG読み込み時もPNG化し、透明情報が失われないようにする）
+            const sourceCanvas = document.createElement('canvas');
+            sourceCanvas.width = img.naturalWidth || img.width;
+            sourceCanvas.height = img.naturalHeight || img.height;
+            sourceCanvas.getContext('2d').drawImage(img, 0, 0);
+            const sourceBlob = await new Promise((resolve, reject) => {
+                sourceCanvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
+            });
+
+            const zip = new JSZip();
+            zip.file('project.json', JSON.stringify(projectData, null, 2));
+            zip.file('source.png', sourceBlob);
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const fileName = sanitizeFileName(projectName.value) + '.parapara.zip';
+
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            alert('プロジェクトの保存中にエラーが発生しました。もう一度お試しください。');
+        }
+    });
+
+    // --- 読み込み（.parapara.zip = Version2 と 旧.parapara.json = Version1 の両方に対応） ---
+    loadProjectBtn.addEventListener('click', () => {
+        loadProjectInput.value = ''; // 同じファイルを連続で選んでもchangeが発火するようにリセット
+        loadProjectInput.click();
+    });
+
+    loadProjectInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const lowerName = file.name.toLowerCase();
+        if (lowerName.endsWith('.zip')) {
+            loadProjectZip(file);
+        } else if (lowerName.endsWith('.json')) {
+            loadProjectJson(file);
+        } else {
+            alert('対応していないファイル形式です。.parapara.zip または .parapara.json を選択してください。');
+        }
+    });
+
+    // --- Version1（旧.parapara.json）の読み込み ---
+    function loadProjectJson(file) {
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            let data;
+            try {
+                data = JSON.parse(event.target.result);
+            } catch (err) {
+                alert('ファイルの内容が正しいJSON形式ではありません。ファイルが破損している可能性があります。');
+                return;
+            }
+
+            // --- バリデーション（この時点では現在の作業データにはまだ触れない） ---
+            if (!data || typeof data !== 'object') {
+                alert('プロジェクトファイルの形式が正しくありません。');
+                return;
+            }
+
+            if (data.format !== PROJECT_FORMAT) {
+                alert('このファイルはパラパラ漫画メーカーのプロジェクトファイルではないようです。');
+                return;
+            }
+
+            if (data.version !== LEGACY_JSON_VERSION) {
+                alert('対応していないバージョンのプロジェクトファイルです（version: ' + data.version + '）。');
+                return;
+            }
+
+            if (!Array.isArray(data.frames) || data.frames.length === 0) {
+                alert('プロジェクトデータにコマ（フレーム）の情報が見つかりません。');
+                return;
+            }
+
+            for (let i = 0; i < data.frames.length; i++) {
+                const f = data.frames[i];
+                if (!f || typeof f.dataUrl !== 'string' || !f.dataUrl.startsWith('data:image')) {
+                    alert('コマ ' + i + ' の画像データが壊れています。読み込みを中止しました。');
+                    return;
+                }
+                if (typeof f.w !== 'number' || typeof f.h !== 'number' || f.w <= 0 || f.h <= 0) {
+                    alert('コマ ' + i + ' の幅・高さの情報が壊れています。読み込みを中止しました。');
+                    return;
+                }
+            }
+
+            const loadedFrameCount = data.frames.length;
+            let sequence = [];
+            let speed = 200;
+            if (data.animation) {
+                if (!Array.isArray(data.animation.sequence) ||
+                    !data.animation.sequence.every(n => Number.isInteger(n) && n >= 0 && n < loadedFrameCount)) {
+                    alert('アニメーション順序のデータが不正です。読み込みを中止しました。');
+                    return;
+                }
+                sequence = data.animation.sequence;
+
+                if (data.animation.speed !== undefined) {
+                    if (typeof data.animation.speed !== 'number' || data.animation.speed <= 0) {
+                        alert('再生速度のデータが不正です。読み込みを中止しました。');
+                        return;
+                    }
+                    speed = data.animation.speed;
+                }
+            }
+
+            // --- ここまで検証OK。既存データを上書きする前に確認 ---
+            const hasExistingWork = animations.some(a => a.frames.length > 0) || frames.length > 0;
+            if (hasExistingWork) {
+                const ok = window.confirm('現在作業中のデータは上書きされます。プロジェクトを読み込んでもよろしいですか？');
+                if (!ok) return;
+            }
+
+            // --- 復元処理（Version1 → 内部では1つのアニメーションとして扱う） ---
+            stopAnimation();
+
+            const restoredFrames = data.frames
+                .slice()
+                .sort((a, b) => (a.index || 0) - (b.index || 0))
+                .map(f => ({ dataUrl: f.dataUrl, w: f.w, h: f.h })); // Version1にはx,y座標情報はない
+
+            let restoredCrop = null;
+            if (data.canvas) {
+                restoredCrop = {
+                    x: (typeof data.canvas.cropX === 'number') ? data.canvas.cropX : 0,
+                    y: (typeof data.canvas.cropY === 'number') ? data.canvas.cropY : 0,
+                    w: (typeof data.canvas.cropW === 'number') ? data.canvas.cropW : 100,
+                    h: (typeof data.canvas.cropH === 'number') ? data.canvas.cropH : 100
+                };
+            }
+
+            const newAnim = {
+                id: generateAnimId(),
+                name: (data.name && String(data.name).trim()) || 'アニメーション1',
+                frames: restoredFrames,
+                sequence: sequence,
+                speed: speed,
+                crop: restoredCrop
+            };
+
+            animations = [newAnim];
+            loadAnimationIntoEditor(newAnim.id);
+            refreshAnimationSelect();
+
+            projectName.value = data.name || '';
+
+            alert('プロジェクトを読み込みました。「▶ 再生」ボタンで再生できます。');
+        };
+        reader.onerror = () => {
+            alert('ファイルの読み込みに失敗しました。');
+        };
+        reader.readAsText(file);
+    }
+
+    // --- .parapara.zip の読み込み（Version2=単一アニメーション／Version3=複数アニメーションの両方に対応） ---
+    async function loadProjectZip(file) {
+        if (typeof JSZip === 'undefined') {
+            alert('ZIP読み込み用のライブラリを読み込めませんでした。インターネット接続をご確認の上、ページを再読み込みしてください。');
+            return;
+        }
+
+        // --- ZIPとして開けるか確認 ---
+        let zip;
+        try {
+            zip = await JSZip.loadAsync(file);
+        } catch (err) {
+            alert('ZIPファイルとして読み込めませんでした。ファイルが破損しているか、ZIP形式ではない可能性があります。');
+            return;
+        }
+
+        // --- project.json の取得・検証 ---
+        const projectEntry = zip.file('project.json');
+        if (!projectEntry) {
+            alert('ZIP内にproject.jsonが見つかりません。');
+            return;
+        }
+
+        let data;
+        try {
+            const jsonText = await projectEntry.async('string');
+            data = JSON.parse(jsonText);
+        } catch (err) {
+            alert('project.jsonの内容が正しいJSON形式ではありません。ファイルが破損している可能性があります。');
+            return;
+        }
+
+        if (!data || typeof data !== 'object' || data.format !== PROJECT_FORMAT) {
+            alert('このZIPはパラパラ漫画メーカーのプロジェクトファイルではないようです。');
+            return;
+        }
+
+        if (data.version !== ZIP_V2_VERSION && data.version !== CURRENT_VERSION) {
+            alert('対応していないバージョンのプロジェクトファイルです（version: ' + data.version + '）。');
+            return;
+        }
+
+        if (!data.source || typeof data.source.width !== 'number' || typeof data.source.height !== 'number') {
+            alert('project.jsonに元画像のサイズ情報が見つかりません。ファイルが壊れている可能性があります。');
+            return;
+        }
+
+        // --- source.png（元画像。すべてのアニメーションで共有）の取得・検証 ---
+        const sourceFileName = (typeof data.source.file === 'string' && data.source.file) ? data.source.file : 'source.png';
+        const sourceEntry = zip.file(sourceFileName);
+        if (!sourceEntry) {
+            alert('ZIP内に元画像（' + sourceFileName + '）が見つかりません。');
+            return;
+        }
+
+        let sourceBlob;
+        try {
+            sourceBlob = await sourceEntry.async('blob');
+        } catch (err) {
+            alert('元画像データの読み込みに失敗しました。ZIPが破損している可能性があります。');
+            return;
+        }
+
+        const sourceUrl = URL.createObjectURL(sourceBlob);
+        let sourceImg;
+        try {
+            sourceImg = await new Promise((resolve, reject) => {
+                const im = new Image();
+                im.onload = () => resolve(im);
+                im.onerror = () => reject(new Error('image decode failed'));
+                im.src = sourceUrl;
+            });
+        } catch (err) {
+            URL.revokeObjectURL(sourceUrl);
+            alert('元画像（' + sourceFileName + '）が壊れているため復元できませんでした。');
+            return;
+        }
+
+        const sw = data.source.width;
+        const sh = data.source.height;
+
+        // 座標が元画像の範囲内かを検証する共通処理
+        function validateFrameRect(f, w, h, label) {
+            if (!f || typeof f.x !== 'number' || typeof f.y !== 'number' ||
+                typeof w !== 'number' || typeof h !== 'number' || w <= 0 || h <= 0) {
+                return 'コマ座標情報が不正です（' + label + '）。読み込みを中止しました。';
+            }
+            if (f.x < 0 || f.y < 0 || f.x + w > sw || f.y + h > sh) {
+                return '切り出し範囲が元画像の範囲外です（' + label + '）。読み込みを中止しました。';
+            }
+            return null;
+        }
+
+        // 読み込み後に animations 配列へ変換するための中間データ（{id, name, frameRects, sequence, speed, crop}の配列）
+        let parsedAnimations = [];
+        let parsedCurrentId = null;
+
+        if (data.version === ZIP_V2_VERSION) {
+            // --- Version2（単一アニメーション）を読み込み、内部では1アニメーションとして扱う ---
+            if (!Array.isArray(data.frames) || data.frames.length === 0) {
+                URL.revokeObjectURL(sourceUrl);
+                alert('プロジェクトデータにコマ（フレーム）の情報が見つかりません。');
+                return;
+            }
+
+            const defaultW = (data.crop && typeof data.crop.width === 'number') ? data.crop.width : null;
+            const defaultH = (data.crop && typeof data.crop.height === 'number') ? data.crop.height : null;
+
+            const frameRects = [];
+            for (let i = 0; i < data.frames.length; i++) {
+                const f = data.frames[i];
+                const w = (f && typeof f.w === 'number') ? f.w : defaultW;
+                const h = (f && typeof f.h === 'number') ? f.h : defaultH;
+                const err = validateFrameRect(f, w, h, 'コマ' + i);
+                if (err) {
+                    URL.revokeObjectURL(sourceUrl);
+                    alert(err);
+                    return;
+                }
+                frameRects.push({ index: (typeof f.index === 'number') ? f.index : i, x: f.x, y: f.y, w, h });
+            }
+            frameRects.sort((a, b) => a.index - b.index);
+
+            let sequence = [];
+            let speed = 200;
+            if (data.animation) {
+                if (!Array.isArray(data.animation.sequence) ||
+                    !data.animation.sequence.every(n => Number.isInteger(n) && n >= 0 && n < frameRects.length)) {
+                    URL.revokeObjectURL(sourceUrl);
+                    alert('アニメーション順序のデータが不正です。読み込みを中止しました。');
+                    return;
+                }
+                sequence = data.animation.sequence;
+                if (data.animation.speed !== undefined) {
+                    if (typeof data.animation.speed !== 'number' || data.animation.speed <= 0) {
+                        URL.revokeObjectURL(sourceUrl);
+                        alert('再生速度のデータが不正です。読み込みを中止しました。');
+                        return;
+                    }
+                    speed = data.animation.speed;
+                }
+            }
+
+            const anim = {
+                id: generateAnimId(),
+                name: 'アニメーション1',
+                frameRects: frameRects,
+                sequence: sequence,
+                speed: speed,
+                crop: (defaultW && defaultH) ? { x: frameRects[0].x, y: frameRects[0].y, w: defaultW, h: defaultH } : null
+            };
+            parsedAnimations = [anim];
+            parsedCurrentId = anim.id;
+
+        } else {
+            // --- Version3（複数アニメーション） ---
+            if (!Array.isArray(data.animations) || data.animations.length === 0) {
+                URL.revokeObjectURL(sourceUrl);
+                alert('プロジェクトデータにパラパラ漫画（アニメーション）の情報が見つかりません。');
+                return;
+            }
+
+            const usedIds = new Set();
+            for (let ai = 0; ai < data.animations.length; ai++) {
+                const a = data.animations[ai];
+                const animLabel = (a && typeof a.name === 'string' && a.name) ? a.name : ('アニメーション' + (ai + 1));
+
+                if (!a || typeof a !== 'object' || !Array.isArray(a.frames) || a.frames.length === 0) {
+                    URL.revokeObjectURL(sourceUrl);
+                    alert('「' + animLabel + '」のコマ（フレーム）情報が見つかりません。読み込みを中止しました。');
+                    return;
+                }
+
+                const frameRects = [];
+                for (let fi = 0; fi < a.frames.length; fi++) {
+                    const f = a.frames[fi];
+                    const err = validateFrameRect(f, f && f.w, f && f.h, '「' + animLabel + '」のコマ' + fi);
+                    if (err) {
+                        URL.revokeObjectURL(sourceUrl);
+                        alert(err);
+                        return;
+                    }
+                    frameRects.push({ index: (typeof f.index === 'number') ? f.index : fi, x: f.x, y: f.y, w: f.w, h: f.h });
+                }
+                frameRects.sort((x, y) => x.index - y.index);
+
+                if (!Array.isArray(a.sequence) ||
+                    !a.sequence.every(n => Number.isInteger(n) && n >= 0 && n < frameRects.length)) {
+                    URL.revokeObjectURL(sourceUrl);
+                    alert('「' + animLabel + '」のコマ順序（sequence）が不正です。読み込みを中止しました。');
+                    return;
+                }
+                const sequence = a.sequence;
+
+                let speed = 200;
+                if (a.speed !== undefined) {
+                    if (typeof a.speed !== 'number' || a.speed <= 0) {
+                        URL.revokeObjectURL(sourceUrl);
+                        alert('「' + animLabel + '」の再生速度が不正です。読み込みを中止しました。');
+                        return;
+                    }
+                    speed = a.speed;
+                }
+
+                let id = (typeof a.id === 'string' && a.id && !usedIds.has(a.id)) ? a.id : generateAnimId();
+                usedIds.add(id);
+                const name = (typeof a.name === 'string' && a.name.trim()) ? a.name.trim() : ('アニメーション' + (ai + 1));
+                const crop = (a.crop && typeof a.crop.x === 'number' && typeof a.crop.y === 'number' &&
+                              typeof a.crop.w === 'number' && typeof a.crop.h === 'number') ? a.crop : null;
+
+                parsedAnimations.push({ id, name, frameRects, sequence, speed, crop });
+            }
+
+            parsedCurrentId = (typeof data.currentAnimationId === 'string' &&
+                                parsedAnimations.some(a => a.id === data.currentAnimationId))
+                ? data.currentAnimationId
+                : parsedAnimations[0].id;
+        }
+
+        // --- ここまで検証OK。既存データを上書きする前に確認 ---
+        const hasExistingWork = animations.some(a => a.frames.length > 0) || frames.length > 0;
+        if (hasExistingWork) {
+            const ok = window.confirm('現在作業中のデータは上書きされます。プロジェクトを読み込んでもよろしいですか？');
+            if (!ok) {
+                URL.revokeObjectURL(sourceUrl);
+                return;
+            }
+        }
+
+        // --- 復元処理 ---
+        stopAnimation();
+
+        // 元画像をワークスペースにも復元する（続けて追加のコマ切り出しができるように）
+        img = sourceImg;
+        zoom = 1.0;
+        updateZoom();
+
+        // source.png + 座標 から各アニメーションのフレームPNGを再生成する（保存データを直接使わず再切り出し）
+        animations = parsedAnimations.map(a => ({
+            id: a.id,
+            name: a.name,
+            frames: a.frameRects.map(r => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = r.w;
+                tempCanvas.height = r.h;
+                tempCanvas.getContext('2d').drawImage(sourceImg, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+                return { dataUrl: tempCanvas.toDataURL('image/png'), w: r.w, h: r.h, x: r.x, y: r.y };
+            }),
+            sequence: a.sequence,
+            speed: a.speed,
+            crop: a.crop
+        }));
+
+        loadAnimationIntoEditor(parsedCurrentId);
+        refreshAnimationSelect();
+
+        projectName.value = data.name || '';
+
+        hideRect = false;
+        drawWorkspace();
+
+        URL.revokeObjectURL(sourceUrl);
+
+        const totalFrames = animations.reduce((sum, a) => sum + a.frames.length, 0);
+        alert('プロジェクトを読み込みました（' + animations.length + '個のパラパラ漫画、計' + totalFrames + '個のコマを元画像から再生成しました）。「▶ 再生」ボタンで再生できます。');
+    }
+
+    // 初期状態（アニメーション1）をUIに反映
+    refreshAnimationSelect();
+});
+</script>
+</body>
+</html>
